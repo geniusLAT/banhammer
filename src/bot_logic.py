@@ -1,6 +1,7 @@
 import telebot
 import curse_word_filter
 import toxicity
+import conclusion
 import setting
 
 my_setting = setting.settings()
@@ -16,17 +17,8 @@ def check_for_ban(message):
 
 
 def validate(message):
-   toxicity_level = toxicity.get_toxicity_probability(message.text)
-   toxicity_level_check = "Нет"
-
-   if toxicity_level>=toxicity_threshold:
-      toxicity_level_check = "Да"  
-  
-   profanity = "Нет"
-   if curse_word_filter.check_profanity(message.text):
-      profanity = "Да"  
-   return "Наличие мата: " + profanity +"\nНаличие грубости: " + profanity +"\nТоксичность: " + str(round(toxicity_level*100, 2)) + "%"
-
+   my_conclusion = conclusion.conclusion(message, my_setting)
+   return str(my_conclusion)
 
 @bot.message_handler(commands=['start'])
 def start_message(message):
