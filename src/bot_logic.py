@@ -14,6 +14,10 @@ bot=telebot.TeleBot(token)
 def check_for_ban(message):
     my_conclusion = conclusion.conclusion(message, my_setting)
 
+    if not my_conclusion.warning:
+       print("Не о чем волноваться")
+       return
+
     user_info = f"Пользователь: {message.from_user.first_name} {message.from_user.last_name} (ID: {message.from_user.id})\n"
     user_info += f"Чат: {message.chat.title if message.chat.title else 'Личный чат'} (ID: {message.chat.id})\n"
     user_info += f"Текст сообщения: {message.text}\n"

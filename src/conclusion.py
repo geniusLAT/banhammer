@@ -10,6 +10,8 @@ class conclusion():
             self.toxicity_level_check = True 
         
         self.profanity_check = curse_word_filter.check_profanity(message.text)
+
+        self.warning = self.profanity_check or self.toxicity_level_check
     
     def __str__(self):
         toxicity_level_check_text = "Нет"
