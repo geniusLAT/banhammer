@@ -1,8 +1,7 @@
 import telebot
-import curse_word_filter
-import toxicity
 import conclusion
 import setting
+from datetime import datetime
 
 my_setting = setting.settings()
 logger_chat = my_setting.logger_chat
@@ -13,7 +12,14 @@ toxicity_threshold = my_setting.toxicity_threshold
 bot=telebot.TeleBot(token)
 
 def check_for_ban(message):
-   bot.send_message(logger_chat,validate(message))
+    my_conclusion = conclusion.conclusion(message, my_setting)
+
+    user_info = f"Пользователь: {message.from_user.first_name} {message.from_user.last_name} (ID: {message.from_user.id})\n"
+    user_info += f"Чат: {message.chat.title if message.chat.title else 'Личный чат'} (ID: {message.chat.id})\n"
+    user_info += f"Текст сообщения: {message.text}\n"
+    user_info += f"Время: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n"
+    user_info += str(my_conclusion)
+    bot.send_message(logger_chat,user_info)
 
 
 def validate(message):
