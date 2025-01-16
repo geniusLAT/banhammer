@@ -10,12 +10,18 @@ logger_chat = my_setting.logger_chat
 special_chat = my_setting.special_chat
 token = my_setting.token
 toxicity_threshold = my_setting.toxicity_threshold
+
+
+
 tracker = UserTracker(f"{special_chat}_ban_time.json")
 
 days = tracker.get_user_days(463234260)
 print(days)
 
 bot=telebot.TeleBot(token)
+
+bot_name = bot.get_me().username
+bot_tag = f"@{bot_name}"
 
 def check_status(message):
     user_status = bot.get_chat_member(message.chat.id, message.from_user.id).status
@@ -38,6 +44,11 @@ def mute_user_for(message, duration_in_days=1):
     
     bot.restrict_chat_member(message.chat.id, message.from_user.id, until_date=next_midnight()+timedelta(days=duration_in_days))
 
+def mute_user(message):
+    ban_time = choose_ban_time(message)
+    mute_user_for(message, ban_time)
+    tracker.update_user(message.from_user.id, ban_time)
+    return ban_time
 
 def check_for_ban(message):
     my_conclusion = conclusion.conclusion(message, my_setting)
@@ -57,9 +68,7 @@ def check_for_ban(message):
 
     reply_message = get_conclusion_message(my_conclusion)
     if not status:
-        ban_time = choose_ban_time(message)
-        mute_user_for(message, ban_time)
-        tracker.update_user(message.from_user.id, ban_time)
+        ban_time = mute_user(message)
         reply_message += f"\nМьют выдан на {ban_time} дней"
         
     else:
@@ -86,6 +95,40 @@ def get_conclusion_message(my_conclusion: conclusion.conclusion ):
 def start_message(message):
   bot.send_message(message.chat.id,"Привет ✌️ ")
 
+def check_for_command(message):
+    status = check_status(message)
+    if message.reply_to_message == None:
+        return
+    if not status:
+        return
+    
+    if message.text.startswith('/ban'):
+        ban_time = mute_user( message.reply_to_message)
+        bot.reply_to(message.reply_to_message, f"Забанен администратором на {ban_time} дней")
+        return
+    if message.text.startswith('/set_ban'):
+        words = message.text.split(" ")
+        days=0
+        if len(words) <2:
+            bot.reply_to(message, f"Неверный синтаксис. \nПример: /set_ban 10")
+            return
+        try:
+            days = int(words[1])
+        except:
+            bot.reply_to(message, f"Неверный синтаксис. \n {words[1]} не является целым числом \nПример: /set_ban 10")
+            return
+        tracker.update_user(message.reply_to_message.from_user.id,days)
+        bot.reply_to(message, f"Время последнего бана перезаписано для {message.reply_to_message.from_user.username} на {days} дней")
+        return
+    if message.text.startswith('/unban'):
+        chat_id = special_chat
+        user_id = message.reply_to_message.from_user.id
+        bot.restrict_chat_member(chat_id, user_id, can_send_messages=True, can_send_media_messages=True, can_send_other_messages=True, can_add_web_page_previews=True)
+        bot.reply_to(message, f"Пользователь {message.reply_to_message.from_user.username} реабилитирован.")
+        days  = tracker.get_user_days(user_id)
+        tracker.update_user(user_id,int(days/2))
+       
+
 
 @bot.message_handler(content_types='text')
 def message_reply(message):
@@ -95,4 +138,7 @@ def message_reply(message):
     else:
         try:    bot.send_message(message.chat.id,validate(message),reply_to_message_id=message.id)
         except Exception as e: print(e)
+    try:
+        check_for_command(message)
+    except Exception as e: print(e)
 bot.infinity_polling()
